@@ -32,10 +32,12 @@ def choose_existing_path(candidates):
     return candidates[0]
 
 DEFAULT_MODEL_PATH = choose_existing_path([
+    os.path.abspath(os.path.join(BASE_DIR, "models", "measles_best_model_trained.pt")),
     os.path.abspath(os.path.join(BASE_DIR, "..", "measles_binary", "checkpoints", "measles_best_model_trained.pt")),
     os.path.abspath(os.path.join(BASE_DIR, "..", "..", "measles_binary", "checkpoints", "measles_best_model_trained.pt"))
 ])
 DEFAULT_CLASS_IDX_PATH = choose_existing_path([
+    os.path.abspath(os.path.join(BASE_DIR, "models", "class_to_idx.json")),
     os.path.abspath(os.path.join(BASE_DIR, "..", "measles_binary", "checkpoints", "class_to_idx.json")),
     os.path.abspath(os.path.join(BASE_DIR, "..", "..", "measles_binary", "checkpoints", "class_to_idx.json"))
 ])
