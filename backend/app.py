@@ -187,6 +187,15 @@ def health_check():
         "model_load_error": model_load_error
     }), 200
 
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint for quick service verification."""
+    return jsonify({
+        "message": "Measles detection backend is running.",
+        "health_endpoint": "/health",
+        "api_base": "/api"
+    }), 200
+
 @app.route('/api/symptoms', methods=['GET'])
 def get_symptoms():
     """Get list of measles symptoms for frontend"""
