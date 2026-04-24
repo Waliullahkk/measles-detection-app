@@ -51,7 +51,10 @@ const DetectionPage = () => {
 
       setResults(response);
     } catch (err) {
-      setError(err.response?.data?.error || 'Error making prediction. Please try again.');
+      const backendError = err.response?.data?.error;
+      const backendDetails = err.response?.data?.details;
+      const fallback = err.message || 'Error making prediction. Please try again.';
+      setError(backendError ? `${backendError}${backendDetails ? ` (${backendDetails})` : ''}` : fallback);
       console.error(err);
     } finally {
       setLoading(false);

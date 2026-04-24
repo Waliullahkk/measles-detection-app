@@ -1,6 +1,7 @@
 import os
 import json
 import pathlib
+import time
 import torch
 import numpy as np
 from flask import Flask, request, jsonify
@@ -45,10 +46,15 @@ DEFAULT_CLASS_IDX_PATH = choose_existing_path([
 MODEL_PATH = os.getenv("MODEL_PATH", DEFAULT_MODEL_PATH)
 CLASS_IDX_PATH = os.getenv("CLASS_IDX_PATH", DEFAULT_CLASS_IDX_PATH)
 DECISION_THRESHOLD = 0.26
+PERSIST_PREDICTIONS = os.getenv("PERSIST_PREDICTIONS", "false").lower() == "true"
 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f"Using device: {device}")
+# Free-tier instances are CPU constrained; limiting threads reduces inference stalls/timeouts.
+torch.set_num_threads(1)
+if hasattr(torch, "set_num_interop_threads"):
+    torch.set_num_interop_threads(1)
 
 # Image transforms
 transform = transforms.Compose([
@@ -230,6 +236,7 @@ def predict():
     }
     """
     try:
+        start_time = time.time()
         if not initialize_model():
             return jsonify({
                 "error": "Model is not available on this deployment.",
@@ -237,13 +244,19 @@ def predict():
             }), 503
 
         data = request.json
+        if data is None:
+            return jsonify({"error": "Invalid JSON body"}), 400
         
         # Validate request
         if 'image' not in data:
             return jsonify({"error": "No image provided"}), 400
         
         # Decode and process image
-        image_data = base64.b64decode(data['image'])
+        image_payload = data['image']
+        if isinstance(image_payload, str) and image_payload.startswith("data:"):
+            image_payload = image_payload.split(",", 1)[1]
+
+        image_data = base64.b64decode(image_payload)
         image = Image.open(BytesIO(image_data)).convert('RGB')
         
         # Apply transforms
@@ -279,24 +292,26 @@ def predict():
         final_prediction = "measles" if (predicted_class == "measles" and 
                                          final_confidence > DECISION_THRESHOLD) else "not_measles"
         
-        # Store prediction in database
-        conn = get_db_connection()
-        c = conn.cursor()
-        c.execute('''
-            INSERT INTO predictions 
-            (prediction, confidence, symptoms, patient_age, patient_gender, result)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (
-            predicted_class,
-            final_confidence,
-            json.dumps(symptoms),
-            data.get('patient_age'),
-            data.get('patient_gender'),
-            final_prediction
-        ))
-        conn.commit()
-        conn.close()
+        # Store prediction in database only when explicitly enabled.
+        if PERSIST_PREDICTIONS:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute('''
+                INSERT INTO predictions 
+                (prediction, confidence, symptoms, patient_age, patient_gender, result)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (
+                predicted_class,
+                final_confidence,
+                json.dumps(symptoms),
+                data.get('patient_age'),
+                data.get('patient_gender'),
+                final_prediction
+            ))
+            conn.commit()
+            conn.close()
         
+        elapsed = round(time.time() - start_time, 3)
         return jsonify({
             "success": True,
             "model_prediction": predicted_class,
@@ -305,6 +320,7 @@ def predict():
             "symptom_count": len(symptoms),
             "final_prediction": final_prediction,
             "final_confidence": float(final_confidence),
+            "processing_time_sec": elapsed,
             "recommendation": get_recommendation(final_prediction, final_confidence, symptoms),
             "risk_level": get_risk_level(final_prediction, final_confidence, len(symptoms))
         }), 200
