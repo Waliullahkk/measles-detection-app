@@ -12,7 +12,6 @@ services:
   - type: web
     name: measles-detection-frontend
     runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: build
