@@ -1,0 +1,12 @@
+frontend/node_modules/
+backend/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+Thumbs.db
+.env
+*.log
+*.db
+*.db-journal
+write_test.txt

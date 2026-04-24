@@ -1,0 +1,52 @@
+.symptoms-card {
+  border-left: 4px solid #198754;
+}
+
+.symptoms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.symptom-item {
+  padding: 10px;
+  border-radius: 6px;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.symptom-item:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.symptom-checkbox {
+  cursor: pointer;
+}
+
+.symptom-label {
+  display: flex;
+  flex-direction: column;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.symptom-name {
+  font-weight: 500;
+  color: #333;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.symptom-duration {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.symptom-summary {
+  border-left: 3px solid #198754;
+}
+
+.selected-symptoms {
+  margin-top: 10px;
+}

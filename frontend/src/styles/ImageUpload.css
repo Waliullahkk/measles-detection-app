@@ -1,0 +1,29 @@
+.image-upload-card {
+  border-left: 4px solid #0d6efd;
+  transition: transform 0.3s ease;
+}
+
+.image-upload-card:hover {
+  transform: translateY(-5px);
+}
+
+.upload-buttons {
+  display: grid;
+  gap: 10px;
+}
+
+.upload-buttons .btn {
+  padding: 12px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.upload-buttons .btn:hover {
+  transform: scale(1.02);
+}
+
+img[alt='Preview'] {
+  border: 2px solid #e9ecef;
+  padding: 10px;
+}

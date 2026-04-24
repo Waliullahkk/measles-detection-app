@@ -1,0 +1,71 @@
+.dashboard-container {
+  padding: 20px 0;
+}
+
+.stat-card {
+  border: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+.stat-card h6 {
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.stat-card h2 {
+  font-weight: bold;
+  font-size: 2rem;
+}
+
+.dashboard-container h2 {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.dashboard-container .card {
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dashboard-container .card-header {
+  font-weight: bold;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table thead th {
+  border-bottom: 2px solid #dee2e6;
+  font-weight: bold;
+  color: #333;
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.table .badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+@media (max-width: 768px) {
+  .stat-card h2 {
+    font-size: 1.5rem;
+  }
+
+  .symptoms-grid {
+    grid-template-columns: 1fr;
+  }
+}

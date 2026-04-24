@@ -1,0 +1,63 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.navbar-custom {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.brand-logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff !important;
+}
+
+.nav-link-custom {
+  color: #fff !important;
+  transition: all 0.3s ease;
+}
+
+.nav-link-custom:hover {
+  color: #e9ecef !important;
+  text-decoration: underline;
+}
+
+.nav-link-custom.active {
+  color: #ffc107 !important;
+  font-weight: bold;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px 0;
+}
+
+.footer {
+  margin-top: auto;
+  border-top: 1px solid #495057;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .brand-logo {
+    font-size: 1.2rem;
+  }
+
+  .main-content {
+    padding: 10px 0;
+  }
+}

@@ -1,0 +1,60 @@
+.results-container {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.results-card {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.prediction-section {
+  border-radius: 6px;
+  border-left: 4px solid #dc3545;
+}
+
+.prediction-section h5 {
+  color: #333;
+  font-weight: bold;
+}
+
+.symptoms-section {
+  border-radius: 6px;
+  border-left: 4px solid #0d6efd;
+}
+
+.symptoms-section h5 {
+  color: #333;
+  font-weight: bold;
+}
+
+.progress {
+  background-color: #e9ecef;
+}
+
+.model-info {
+  border-radius: 6px;
+  border-left: 4px solid #6c757d;
+}
+
+.results-card .btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.results-card .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
