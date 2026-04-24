@@ -1,5 +1,6 @@
 import os
 import json
+import pathlib
 import torch
 import numpy as np
 from flask import Flask, request, jsonify
@@ -81,7 +82,18 @@ def initialize_model():
         loaded_model = models.resnet18(weights=None)
         loaded_model.fc = torch.nn.Linear(512, len(class_to_idx))
 
-        checkpoint = torch.load(MODEL_PATH, map_location=device)
+        # Some checkpoints saved on Windows include pathlib.WindowsPath objects.
+        # Remap temporarily on non-Windows hosts (e.g., Render Linux) for compatibility.
+        original_windows_path = None
+        if os.name != "nt":
+            original_windows_path = pathlib.WindowsPath
+            pathlib.WindowsPath = pathlib.PosixPath
+
+        try:
+            checkpoint = torch.load(MODEL_PATH, map_location=device)
+        finally:
+            if original_windows_path is not None:
+                pathlib.WindowsPath = original_windows_path
         # Support both raw state_dict checkpoints and training checkpoint dicts.
         if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
             state_dict = checkpoint["model_state_dict"]
