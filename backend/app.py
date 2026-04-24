@@ -21,20 +21,31 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuration
-MODEL_PATH = r"e:\measles\measles_binary\checkpoints\measles_best_model_trained.pt"
-CLASS_IDX_PATH = r"e:\measles\measles_binary\checkpoints\class_to_idx.json"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, "measles_detection.db")
+
+def choose_existing_path(candidates):
+    """Pick the first existing path; otherwise keep the first candidate as default."""
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+    return candidates[0]
+
+DEFAULT_MODEL_PATH = choose_existing_path([
+    os.path.abspath(os.path.join(BASE_DIR, "..", "measles_binary", "checkpoints", "measles_best_model_trained.pt")),
+    os.path.abspath(os.path.join(BASE_DIR, "..", "..", "measles_binary", "checkpoints", "measles_best_model_trained.pt"))
+])
+DEFAULT_CLASS_IDX_PATH = choose_existing_path([
+    os.path.abspath(os.path.join(BASE_DIR, "..", "measles_binary", "checkpoints", "class_to_idx.json")),
+    os.path.abspath(os.path.join(BASE_DIR, "..", "..", "measles_binary", "checkpoints", "class_to_idx.json"))
+])
+MODEL_PATH = os.getenv("MODEL_PATH", DEFAULT_MODEL_PATH)
+CLASS_IDX_PATH = os.getenv("CLASS_IDX_PATH", DEFAULT_CLASS_IDX_PATH)
 DECISION_THRESHOLD = 0.26
 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f"Using device: {device}")
-
-# Load class index mapping
-with open(CLASS_IDX_PATH, 'r') as f:
-    class_to_idx = json.load(f)
-idx_to_class = {v: k for k, v in class_to_idx.items()}
 
 # Image transforms
 transform = transforms.Compose([
@@ -44,26 +55,49 @@ transform = transforms.Compose([
                          std=[0.229, 0.224, 0.225])
 ])
 
-# Load model
-def load_model():
-    """Load the trained ResNet18 model"""
-    model = models.resnet18(pretrained=False)
-    model.fc = torch.nn.Linear(512, len(class_to_idx))
-    
-    checkpoint = torch.load(MODEL_PATH, map_location=device)
-    # Support both raw state_dict checkpoints and training checkpoint dicts.
-    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
-        state_dict = checkpoint["model_state_dict"]
-    else:
-        state_dict = checkpoint
+class_to_idx = {}
+idx_to_class = {}
+model = None
+model_load_error = None
 
-    model.load_state_dict(state_dict)
-    model.to(device)
-    model.eval()
-    return model
+def initialize_model():
+    """Load class mapping and model once; keep server alive if files are unavailable."""
+    global class_to_idx, idx_to_class, model, model_load_error
 
-model = load_model()
-logger.info("Model loaded successfully")
+    if model is not None:
+        return True
+
+    try:
+        with open(CLASS_IDX_PATH, "r", encoding="utf-8") as f:
+            class_to_idx = json.load(f)
+
+        if not class_to_idx:
+            raise ValueError("Class mapping file is empty")
+
+        idx_to_class = {v: k for k, v in class_to_idx.items()}
+
+        loaded_model = models.resnet18(weights=None)
+        loaded_model.fc = torch.nn.Linear(512, len(class_to_idx))
+
+        checkpoint = torch.load(MODEL_PATH, map_location=device)
+        # Support both raw state_dict checkpoints and training checkpoint dicts.
+        if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+            state_dict = checkpoint["model_state_dict"]
+        else:
+            state_dict = checkpoint
+
+        loaded_model.load_state_dict(state_dict)
+        loaded_model.to(device)
+        loaded_model.eval()
+        model = loaded_model
+        model_load_error = None
+        logger.info("Model loaded successfully")
+        return True
+    except Exception as exc:
+        model = None
+        model_load_error = str(exc)
+        logger.warning("Model not loaded. Prediction endpoint will be unavailable: %s", exc)
+        return False
 
 def get_db_connection():
     """Create SQLite connection configured for restricted filesystem environments."""
@@ -93,6 +127,7 @@ def init_db():
     conn.close()
 
 init_db()
+initialize_model()
 
 # Measles symptoms database
 MEASLES_SYMPTOMS = {
@@ -141,7 +176,14 @@ MEASLES_SYMPTOMS = {
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return jsonify({"status": "healthy", "device": str(device)}), 200
+    return jsonify({
+        "status": "healthy",
+        "device": str(device),
+        "model_loaded": model is not None,
+        "model_path": MODEL_PATH,
+        "class_idx_path": CLASS_IDX_PATH,
+        "model_load_error": model_load_error
+    }), 200
 
 @app.route('/api/symptoms', methods=['GET'])
 def get_symptoms():
@@ -165,6 +207,12 @@ def predict():
     }
     """
     try:
+        if not initialize_model():
+            return jsonify({
+                "error": "Model is not available on this deployment.",
+                "details": model_load_error
+            }), 503
+
         data = request.json
         
         # Validate request
@@ -186,7 +234,7 @@ def predict():
             
             confidence = confidence.item()
             predicted_idx = predicted_idx.item()
-            predicted_class = idx_to_class[predicted_idx]
+            predicted_class = idx_to_class.get(predicted_idx, "not_measles")
         
         # Apply decision threshold
         if predicted_class == "measles" and confidence < DECISION_THRESHOLD:
@@ -343,4 +391,6 @@ def get_risk_level(prediction, confidence, symptom_count):
         return "LOW"
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    port = int(os.getenv("PORT", "5000"))
+    debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    app.run(debug=debug, host='0.0.0.0', port=port)
